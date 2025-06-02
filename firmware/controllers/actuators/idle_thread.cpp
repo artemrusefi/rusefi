@@ -452,6 +452,21 @@ void IdleController::onConfigurationChange(engine_configuration_s const * previo
 #endif
 }
 
+void IdleController::update() {
+    if (engineConfiguration->isTorqueControlEnabled) {
+        // Torque-based idle control handles RPM regulation
+        int current_rpm = Sensor::getOrZero(SensorType::Rpm);
+        int target_rpm = engineConfiguration->idleRpmTarget;
+        
+        if (abs(current_rpm - target_rpm) > engineConfiguration->idleRpmDeadZone) {
+            // Large RPM error - log for diagnostics
+            warning(OBD_Idle_Control_System_Malfunction, 
+                   "Idle RPM error: %d", current_rpm - target_rpm);
+        }
+        
+        return; // Skip traditional idle control
+    }
+
 void IdleController::init() {
 	shouldResetPid = false;
 	mightResetPid = false;
@@ -460,5 +475,7 @@ void IdleController::init() {
 	m_timingHpf.configureHighpass(20, 1);
 	getIdlePid()->initPidClass(&engineConfiguration->idleRpmPid);
 }
+
+
 
 #endif /* EFI_IDLE_CONTROL */
